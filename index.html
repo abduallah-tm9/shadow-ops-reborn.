@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#09111b">
+<meta name="description" content="Shadow Ops: Reborn — لعبة تصويب تجريبية للمتصفح مع طور زومبي ودعم يد التحكم.">
+<title>Shadow Ops: Reborn</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#071019;--panel:#101c28;--cyan:#59e1ff;--orange:#ff7b36;--muted:#9eb2c3}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#eef8ff;font-family:system-ui,-apple-system,Segoe UI,Tahoma,sans-serif;touch-action:none}
+#game{position:absolute;inset:0;width:100%;height:100%;display:block;background:#101820}
+#hud{position:absolute;inset:0;pointer-events:none;text-shadow:0 2px 5px #000}
+.top{display:flex;justify-content:space-between;gap:10px;padding:12px;align-items:flex-start}
+.pill{background:#06101bd9;border:1px solid #4b8290a6;border-radius:12px;padding:8px 12px;font-weight:800}
+#crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);opacity:.9}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#b9f6ff;box-shadow:0 0 6px #43ddff}
+#crosshair:before{width:2px;height:22px;left:10px}#crosshair:after{height:2px;width:22px;top:10px}
+#bottomHud{position:absolute;bottom:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:end;gap:8px}
+.big{font-size:clamp(18px,3vw,30px);font-weight:900}.small{font-size:12px;color:#c2d3df}
+#menu{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#02070deF,#071a2aeF);padding:16px;overflow:auto}
+.card{width:min(780px,100%);max-height:95%;overflow:auto;background:linear-gradient(145deg,#102232,#07111c);border:1px solid #3a7585;border-radius:20px;padding:clamp(16px,4vw,30px);box-shadow:0 20px 70px #000a}
+.logo{font-size:clamp(28px,6vw,54px);font-weight:1000;letter-spacing:1px;line-height:1;color:#f4fbff}.logo span{color:var(--orange)}
+.tag{color:var(--cyan);font-weight:800;margin:10px 0 18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+button,select{font:inherit;color:#f4fbff;background:#142a3b;border:1px solid #427487;border-radius:12px;padding:12px;cursor:pointer}
+button:active{transform:scale(.98)}button.primary{background:linear-gradient(100deg,#ff6b2d,#d84223);border-color:#ff9c65;font-weight:900}
+button.secondary{background:#102333}
+.info{margin-top:14px;padding:12px;background:#06101c;border-radius:12px;color:#b8cad8;font-size:13px;line-height:1.6}
+#touch{position:absolute;inset:0;display:none;pointer-events:none}
+#stick{position:absolute;bottom:32px;left:24px;width:120px;height:120px;border-radius:50%;background:#7bcde322;border:2px solid #8feaff66;pointer-events:auto}
+#nub{position:absolute;left:35px;top:35px;width:46px;height:46px;border-radius:50%;background:#8feaff77;border:1px solid #b5f4ff}
+.action{position:absolute;pointer-events:auto;border-radius:50%;width:68px;height:68px;font-weight:900;background:#ff632dcc;border:2px solid #ffba8b}
+#fire{bottom:48px;right:26px;width:82px;height:82px}#reload{bottom:140px;right:28px}#jump{bottom:48px;right:122px}#interact{bottom:140px;right:112px;width:78px;height:58px;border-radius:15px}
+#toast{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:#06101de8;border:1px solid #54d9ee;padding:10px 16px;border-radius:12px;display:none;text-align:center}
+#custom{position:absolute;inset:0;background:#02070df2;display:none;align-items:center;justify-content:center;padding:14px;overflow:auto}
+#custom .card{width:min(680px,100%)}
+.weapon-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}
+.weapon-list button{text-align:right;font-size:12px;padding:9px}
+#pause{position:absolute;top:12px;left:12px;pointer-events:auto;padding:8px 12px}
+@media(min-width:800px){#touch{display:none!important}}@media(max-width:799px){#touch{display:block}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+ <div class="top">
+  <div class="pill"><div id="modeLabel">طور الزومبي</div><div class="small" id="waveLabel">الموجة 1</div></div>
+  <div class="pill" style="text-align:center"><div id="points">النقاط 500</div><div class="small" id="kills">الإقصاءات 0</div></div>
+  <button id="pause" style="pointer-events:auto">Ⅱ إيقاف</button>
+ </div>
+ <div id="crosshair"></div>
+ <div id="bottomHud">
+  <div class="pill"><div class="small">الصحة</div><div class="big" id="health">100</div></div>
+  <div class="pill" style="text-align:center"><div class="small" id="weaponName">AR-01 | بندقية هجومية</div><div class="big"><span id="ammo">30</span> <span style="color:#9eb2c3">/ ∞</span></div><div class="small" id="attachments">منظار قياسي • قبضة</div></div>
+  <div class="pill" style="text-align:left"><div class="small">الحالة</div><div id="status">استعد للقتال</div></div>
+ </div>
+</div>
+<div id="toast"></div>
+<div id="touch">
+ <div id="stick"><div id="nub"></div></div>
+ <button class="action" id="fire">إطلاق</button>
+ <button class="action" id="reload">تلقيم</button>
+ <button class="action" id="jump">قفز</button>
+ <button class="action" id="interact">فتح باب</button>
+</div>
+<div id="menu">
+ <div class="card">
+  <div class="logo">SHADOW OPS <span>REBORN</span></div>
+  <div class="tag">تصويب فردي • زومبي • بلا إنترنت بعد التحميل الأول</div>
+  <p>نسخة تجريبية قابلة للعب داخل المتصفح. تحرّك في الساحة، واجه الزومبي، اجمع النقاط وافتح البوابة. تعمل باللمس أو لوحة المفاتيح أو يد التحكم المتوافقة.</p>
+  <div class="grid">
+   <button class="primary" id="startZombie">ابدأ طور الزومبي</button>
+   <button class="secondary" id="startCombat">ابدأ ساحة التدريب</button>
+   <button class="secondary" id="openArmory">ترسانة الأسلحة والتعديل</button>
+   <button class="secondary" id="help">التحكم والمساعدة</button>
+  </div>
+  <div class="info">التحكم: W/A/S/D أو الأسهم للحركة، الماوس للتصويب، زر الفأرة الأيسر للإطلاق، E لفتح الباب، R للتلقيم، 1–6 لتغيير السلاح. على يد PS5: العصا اليسرى للحركة، اليمنى للنظر، R2 للإطلاق، □ للتلقيم، △ للتبديل، × للتفاعل. قد يختلف دعم يد التحكم حسب المتصفح والجهاز.</div>
+  <div class="info">هذه نسخة أولية وليست لعبة AAA مكتملة: الرسومات والأعداء مبسّطة، وقائمة 60 سلاحًا معروضة كترسانة تجريبية؛ سنوسّع الأنظمة والخرائط لاحقًا.</div>
+ </div>
+</div>
+<div id="custom"><div class="card">
+ <div class="logo" style="font-size:30px">ترسانة <span>الأسلحة</span></div>
+ <p>اختر سلاحًا ثم اضبط ملحقاته. القائمة تتضمن 60 سلاحًا تجريبيًا بأسماء أصلية.</p>
+ <label for="weaponSelect">السلاح المحدد</label><br>
+ <select id="weaponSelect" style="width:100%;margin:8px 0"></select>
+ <div class="grid">
+  <label>المنظار<br><select id="optic" style="width:100%"><option>قياسي</option><option>نقطة حمراء</option><option>هولوغرافي</option><option>قنص 4x</option></select></label>
+  <label>الفوهة<br><select id="muzzle" style="width:100%"><option>قياسية</option><option>كاتم صوت</option><option>معوّض ارتداد</option></select></label>
+  <label>المخزن<br><select id="mag" style="width:100%"><option>قياسي</option><option>مخزن موسع</option><option>تلقيم سريع</option></select></label>
+  <label>القبضة<br><select id="grip" style="width:100%"><option>قياسية</option><option>قبضة ثابتة</option><option>قبضة خفيفة</option></select></label>
+ </div>
+ <div class="grid" style="margin-top:12px"><button class="primary" id="equip">تجهيز السلاح</button><button id="closeArmory">عودة</button></div>
+</div></div>
+<script>
+(()=> {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=innerWidth,H=innerHeight,playing=false,mode='zombie',paused=false,player={x:2.5,y:2.5,a:0,hp:100,points:500,ammo:30,clip:30,kills:0,wave:1},zombies=[],last=0,fireHeld=false,keys={},touchMove={x:0,y:0},lookPointer=null,doorOpen=false,shotFlash=0,selected=0,toastTimer=0,weaponAttachments={};
+const map=[
+"1111111111111111",
+"1000000000000001",
+"1000100001000001",
+"1000100001000001",
+"1000000000000001",
+"1011001100110001",
+"1000000000000001",
+"1000100001000001",
+"1000100001000001",
+"1000000000000001",
+"1000110000110001",
+"1000000000000001",
+"1000000000000001",
+"1111111111111111"
+].map(r=>r.split('').map(Number));
+const weaponTypes=['بندقية هجومية','رشاش خفيف','رشاش سريع','قناصة','شوزن','مسدس','سلاح خاص'];
+const weapons=[];
+for(let i=0;i<60;i++){let type=i<12?0:i<20?1:i<28?2:i<36?3:i<42?4:i<50?5:6;weapons.push({name:['AR','LMG','SMG','SR','SG','P','X'][type]+'-'+String(i+1).padStart(2,'0'),type,label:weaponTypes[type],clip:[30,45,32,8,8,15,20][type],damage:[34,27,23,90,70,24,45][type]})}
+const selectedWeapon=()=>weapons[selected];
+function resize(){W=canvas.width=innerWidth*devicePixelRatio;H=canvas.height=innerHeight*devicePixelRatio;canvas.style.width=innerWidth+'px';canvas.style.height=innerHeight+'px';ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);W=innerWidth;H=innerHeight}
+addEventListener('resize',resize);resize();
+function msg(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.display='none',1800)}
+function solid(x,y){let mx=Math.floor(x),my=Math.floor(y);if(my<0||my>=map.length||mx<0||mx>=map[0].length)return true;return map[my][mx]===1 || (!doorOpen&&mx===13&&my===6)}
+function spawnWave(){let n=mode==='zombie'?Math.min(3+player.wave*2,22):8;for(let i=0;i<n;i++){let x,y,tries=0;do{x=1+Math.random()*13;y=1+Math.random()*11;tries++}while((solid(x,y)||Math.hypot(x-player.x,y-player.y)<4)&&tries<100);zombies.push({x,y,hp:70+player.wave*8,speed:.45+Math.random()*.25,attack:0})} $('waveLabel').textContent='الموجة '+player.wave;msg('بدأت الموجة '+player.wave)}
+function start(m){mode=m;playing=true;paused=false;player={x:2.5,y:2.5,a:0,hp:100,points:500,kills:0,wave:1,ammo:30,clip:30};zombies=[];doorOpen=false;$('menu').style.display='none';$('custom').style.display='none';$('modeLabel').textContent=m==='zombie'?'طور الزومبي':'ساحة التدريب';spawnWave();updateHud();requestAnimationFrame(loop)}
+function updateHud(){let w=selectedWeapon();$('points').textContent='النقاط '+player.points;$('kills').textContent='الإقصاءات '+player.kills;$('health').textContent=player.hp;$('ammo').textContent=player.ammo;$('weaponName').textContent=w.name+' | '+w.label;let a=weaponAttachments[selected]||{optic:'قياسي',muzzle:'قياسية',mag:'قياسي',grip:'قياسية'};$('attachments').textContent=a.optic+' • '+a.muzzle+' • '+a.mag+' • '+a.grip;$('status').textContent=doorOpen?'البوابة مفتوحة':'افتح البوابة: 1250 نقطة'}
+function ray(angle){let d=0,step=.025;while(d<22){d+=step;if(solid(player.x+Math.cos(angle)*d,player.y+Math.sin(angle)*d))return d}return 22}
+function render(){ctx.clearRect(0,0,W,H);let horizon=H*.49;let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#071321');sky.addColorStop(1,'#33404a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#343735');floor.addColorStop(1,'#0a0d11');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
+for(let y=0;y<12;y++){let yy=horizon+(y*y*(H-horizon)/144);ctx.strokeStyle='rgba(180,210,220,.07)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke()}
+let strips=Math.max(100,Math.floor(W/3)),fov=Math.PI/3,depths=[];
+for(let i=0;i<strips;i++){let a=player.a-fov/2+(i/strips)*fov,d=ray(a),correct=d*Math.cos(a-player.a);depths[i]=correct;let wallH=Math.min(H*1.5,H/(correct+.08));let x=i*W/strips;let shade=Math.max(25,150-correct*10);ctx.fillStyle=`rgb(${shade*.55},${shade*.75},${shade*.85})`;ctx.fillRect(x,horizon-wallH/2,W/strips+1,wallH);ctx.fillStyle='rgba(0,0,0,.15)';ctx.fillRect(x,horizon-wallH/2,W/strips+1,wallH)}
+let sorted=zombies.map(z=>({z,d:Math.hypot(z.x-player.x,z.y-player.y)})).sort((a,b)=>b.d-a.d);
+for(let {z,d} of sorted){let ang=Math.atan2(z.y-player.y,z.x-player.x)-player.a;while(ang>Math.PI)ang-=Math.PI*2;while(ang< -Math.PI)ang+=Math.PI*2;if(Math.abs(ang)>fov*.7||d<.1)continue;let sx=W/2+(ang/(fov/2))*W/2, size=Math.min(H*.8,H/(d+.1)*.75),sy=horizon-size*.25;let colX=Math.floor((sx/W)*strips);if(depths[Math.max(0,Math.min(strips-1,colX))]<d*.85)continue;
+ctx.fillStyle='#180d12';ctx.beginPath();ctx.ellipse(sx,sy+size*.65,size*.22,size*.34,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#365447';ctx.fillRect(sx-size*.16,sy+size*.24,size*.32,size*.46);ctx.fillStyle='#8cff72';ctx.beginPath();ctx.arc(sx,sy+size*.17,size*.18,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff322e';ctx.fillRect(sx-size*.1,sy+size*.13,size*.05,size*.04);ctx.fillRect(sx+size*.04,sy+size*.13,size*.05,size*.04);ctx.fillStyle='#d8f4e4';ctx.fillRect(sx-size*.1,sy+size*.4,size*.2,Math.max(2,size*.025))}
+ // weapon silhouette
+ ctx.fillStyle='#10171c';ctx.beginPath();ctx.moveTo(W*.43,H);ctx.lineTo(W*.46,H*.81);ctx.lineTo(W*.52,H*.78);ctx.lineTo(W*.58,H);ctx.fill();ctx.fillStyle='#35444b';ctx.fillRect(W*.47,H*.81,W*.09,H*.1);ctx.fillStyle=shotFlash?'#fff1b0':'#18242b';ctx.fillRect(W*.495,H*.77,W*.035,H*.08);if(shotFlash){ctx.fillStyle='#ffb34e';ctx.beginPath();ctx.arc(W*.512,H*.76,18+Math.random()*18,0,Math.PI*2);ctx.fill();shotFlash--}
+}
+function shoot(){if(!playing||paused||player.ammo<=0)return;if(player.ammo===0){msg('أعد التلقيم');return}player.ammo--;shotFlash=2;let target=null,best=1.2;for(let z of zombies){let d=Math.hypot(z.x-player.x,z.y-player.y),a=Math.atan2(z.y-player.y,z.x-player.x)-player.a;while(a>Math.PI)a-=2*Math.PI;while(a< -Math.PI)a+=2*Math.PI;if(Math.abs(a)<.12&&d<ray(a)+.3&&d<best+10){if(Math.abs(a)<best/(d+1)){target=z;best=Math.abs(a)}}}if(target){target.hp-=selectedWeapon().damage;if(target.hp<=0){zombies=zombies.filter(z=>z!==target);player.kills++;player.points+=100;msg('+100 نقطة')} }updateHud()}
+function move(dt){let f=(keys.w||keys.ArrowUp?1:0)-(keys.s||keys.ArrowDown?1:0)+(-touchMove.y),side=(keys.d||keys.ArrowRight?1:0)-(keys.a||keys.ArrowLeft?1:0)+(touchMove.x);let speed=2.6*dt,dx=(Math.cos(player.a)*f-Math.sin(player.a)*side)*speed,dy=(Math.sin(player.a)*f+Math.cos(player.a)*side)*speed;if(!solid(player.x+dx,player.y))player.x+=dx;if(!solid(player.x,player.y+dy))player.y+=dy;
+let pads=navigator.getGamepads?.()||[];for(let p of pads){if(!p)continue;let lx=p.axes[0]||0,ly=p.axes[1]||0,rx=p.axes[2]||0,ry=p.axes[3]||0;let gx=(Math.abs(lx)>.15?lx:0),gy=(Math.abs(ly)>.15?ly:0);let pdx=(Math.cos(player.a)*-gy-Math.sin(player.a)*gx)*speed*1.8,pdy=(Math.sin(player.a)*-gy+Math.cos(player.a)*gx)*speed*1.8;if(!solid(player.x+pdx,player.y))player.x+=pdx;if(!solid(player.x,player.y+pdy))player.y+=pdy;player.a+=rx*dt*2.4;if(p.buttons[7]?.value>.25||p.buttons[7]?.pressed)shoot();if(p.buttons[0]?.pressed)interact();if(p.buttons[2]?.pressed)reload();if(p.buttons[3]?.pressed)nextWeapon()}
+for(let z of zombies){let d=Math.hypot(player.x-z.x,player.y-z.y);if(d>0.8){let vx=(player.x-z.x)/d*z.speed*dt,vy=(player.y-z.y)/d*z.speed*dt;if(!solid(z.x+vx,z.y))z.x+=vx;if(!solid(z.x,z.y+vy))z.y+=vy}else{z.attack+=dt;if(z.attack>1.1){player.hp-=5;z.attack=0;updateHud();if(player.hp<=0){player.hp=0;paused=true;msg('انتهت الجولة — اضغط إيقاف ثم إعادة اللعب')}}}}
+if(zombies.length===0&&playing&&!paused){player.wave++;player.points+=250;spawnWave()}updateHud()}
+function loop(t){if(!playing)return;let dt=Math.min(.04,(t-last)/1000||0);last=t;if(!paused){move(dt);render()}requestAnimationFrame(loop)}
+function interact(){if(!playing)return;if(Math.hypot(player.x-12.7,player.y-6.5)<3.2){if(!doorOpen&&player.points>=1250){player.points-=1250;doorOpen=true;msg('فُتحت البوابة!');updateHud()}else if(!doorOpen)msg('تحتاج 1250 نقطة لفتح البوابة');else msg('البوابة مفتوحة')}else msg('اقترب من البوابة للتفاعل')}
+function reload(){player.ammo=selectedWeapon().clip;updateHud();msg('تم التلقيم')}
+function nextWeapon(){selected=(selected+1)%weapons.length;player.ammo=selectedWeapon().clip;updateHud();msg('السلاح: '+selectedWeapon().name)}
+$('startZombie').onclick=()=>start('zombie');$('startCombat').onclick=()=>start('combat');$('pause').onclick=()=>{paused=!paused;msg(paused?'اللعبة متوقفة':'استمر بالقتال')};
+$('help').onclick=()=>msg('WASD للحركة • الماوس للتصويب • زر الفأرة للإطلاق • E تفاعل');
+$('openArmory').onclick=()=>{$('custom').style.display='flex';$('weaponSelect').innerHTML=weapons.map((w,i)=>`<option value="${i}">${w.name} — ${w.label}</option>`).join('');$('weaponSelect').value=selected};
+$('closeArmory').onclick=()=>{$('custom').style.display='none';if(!playing)$('menu').style.display='flex'};
+$('equip').onclick=()=>{selected=+$('weaponSelect').value;weaponAttachments[selected]={optic:$('optic').value,muzzle:$('muzzle').value,mag:$('mag').value,grip:$('grip').value};player.ammo=selectedWeapon().clip;$('custom').style.display='none';if(!playing)$('menu').style.display='flex';updateHud();msg('تم تجهيز '+selectedWeapon().name)};
+addEventListener('keydown',e=>{keys[e.key]=true;if(e.key.toLowerCase()==='e')interact();if(e.key.toLowerCase()==='r')reload();if(e.key===' ')e.preventDefault();if('123456'.includes(e.key)){selected=(+e.key-1)%weapons.length;player.ammo=selectedWeapon().clip;updateHud()}});
+addEventListener('keyup',e=>keys[e.key]=false);
+canvas.addEventListener('click',()=>{if(playing&&document.pointerLockElement!==canvas&&innerWidth>800)canvas.requestPointerLock?.();shoot()});
+addEventListener('mousemove',e=>{if(playing&&document.pointerLockElement===canvas)player.a+=e.movementX*.003});
+canvas.addEventListener('touchstart',e=>{if(e.touches.length){lookPointer={x:e.touches[0].clientX,y:e.touches[0].clientY}}},{passive:false});
+canvas.addEventListener('touchmove',e=>{if(!lookPointer||!playing)return;let t=e.touches[0];player.a+=(t.clientX-lookPointer.x)*.006;lookPointer={x:t.clientX,y:t.clientY};e.preventDefault()},{passive:false});
+const stick=$('stick'),nub=$('nub');let stickId=null,origin={x:0,y:0};
+stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;origin={x:e.clientX,y:e.clientY};stick.setPointerCapture(e.pointerId)});
+stick.addEventListener('pointermove',e=>{if(stickId!==e.pointerId)return;let dx=e.clientX-origin.x,dy=e.clientY-origin.y,len=Math.hypot(dx,dy),max=38;if(len>max){dx*=max/len;dy*=max/len}nub.style.left=(35+dx)+'px';nub.style.top=(35+dy)+'px';touchMove={x:dx/max,y:dy/max}});
+function endStick(){stickId=null;nub.style.left='35px';nub.style.top='35px';touchMove={x:0,y:0}}stick.addEventListener('pointerup',endStick);stick.addEventListener('pointercancel',endStick);
+$('fire').addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;shoot()});$('fire').addEventListener('pointerup',()=>fireHeld=false);$('fire').addEventListener('pointercancel',()=>fireHeld=false);
+$('reload').onclick=reload;$('jump').onclick=()=>msg('القفز قيد التطوير في هذه النسخة');$('interact').onclick=interact;
+setInterval(()=>{if(fireHeld)shoot()},180);
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+updateHud();
+})();
+</script>
+</body></html>

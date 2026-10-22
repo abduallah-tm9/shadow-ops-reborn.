@@ -1,0 +1,9 @@
+{
+  "name": "Shadow Ops: Reborn",
+  "short_name": "Shadow Ops",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#071019",
+  "theme_color": "#09111b",
+  "description": "لعبة تصويب تجريبية مع طور زومبي ودعم يد التحكم"
+}
